@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Git 80/20 Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday learning tool, exact like an engineering datasheet
+   IDEA a lab bench for Git: missions on top, a terminal, and the four places code lives redrawn after every command
+   PICTURE the live sandbox: terminal beside Working directory / Staging / Local repo graph / GitHub
+   COLOUR white or night #0a0d18 ground, cobalt #1240e0 strip and HEAD, pale #eef2ff zones, amber for staged, yellow tags
+   TYPE Space Grotesk 600 + Inter, JetBrains Mono for every command
+   LAYOUT laptop: mission + terminal left, zones right, 80/20 sheet below; phone: mission, terminal, zones, sheet */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0a0d18);--ink:light-dark(#0b0b10,#e8ebf5);--mute:light-dark(#555b6e,#9aa3bd);--zone:light-dark(#eef2ff,#121933);--card:light-dark(#fff,#0e1428);--line:light-dark(#cfd7f2,#283257);--cob:light-dark(#1240e0,#7b97ff);--red:light-dark(#c2261b,#ff7a6e);--ok:light-dark(#1d7a3a,#5fd384);--l0:var(--cob);--l1:light-dark(#d6336c,#ff6b9d);--l2:light-dark(#2b8a3e,#51cf66);--l3:light-dark(#e67700,#ffa94d);--l4:light-dark(#7048e8,#9775fa)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Space Grotesk",Inter,sans-serif;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:0}
+code{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.88em;overflow-wrap:anywhere}
+a{color:var(--cob)}
+button{font:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--cob);outline-offset:2px}
+.band{padding:clamp(20px,3vw,36px) max(4vw,16px)}
+.wrap{max-width:1320px;margin:0 auto}
+header{background:#1240e0;color:#fff}
+header .wrap{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:end;justify-content:space-between}
+header h1{font-size:clamp(32px,5vw,46px)}
+header p{margin:8px 0 0;max-width:62ch;color:#dfe6ff}
+header nav{display:flex;gap:8px;flex-wrap:wrap}
+header nav a{color:#fff;border:1px solid #ffffff88;border-radius:6px;padding:10px 14px;text-decoration:none;font-weight:600;min-height:44px}
+header nav a:hover{background:#ffffff22}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:8px 12px;min-height:44px;font-size:14px;font-weight:500}
+.chip:hover{border-color:var(--cob)}
+.chip[aria-current=true]{background:var(--cob);color:#fff;border-color:var(--cob)}
+.chip.ok::before{content:"✓ ";color:var(--ok);font-weight:700}
+.chip.ok[aria-current=true]::before{color:#fff}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.mis{border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-bottom:12px;background:var(--card)}
+.mis h2{font-size:26px}
+.mis .goal{margin:8px 0 6px}
+.mis details{margin-top:6px}
+.mis summary{cursor:pointer;color:var(--cob);font-weight:600;min-height:32px}
+.hints{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.hint{font:13px "JetBrains Mono",monospace;background:var(--zone);border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:6px 9px;min-height:36px;text-align:left}
+.hint:hover{border-color:var(--cob)}
+.hnote{font-size:14px;color:var(--mute);width:100%;margin:2px 0}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.btn{background:var(--cob);color:#fff;border:0;border-radius:6px;padding:9px 14px;min-height:40px;font-weight:600}
+.btn2{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-height:40px}
+.btn2:hover{border-color:var(--cob)}
+.won{margin-top:12px;padding:12px 14px;border-radius:6px;background:light-dark(#e6f6ec,#10291b);border:1px solid var(--ok)}
+.won b{color:var(--ok)}
+.term{background:#0b0e1a;color:#d7dcef;border-radius:8px;display:flex;flex-direction:column;height:clamp(360px,56vh,540px);border:1px solid #1d2440}
+.term:focus-within{border-color:#5b7cff}
+#out{flex:1;overflow:auto;padding:12px 14px;font:13.5px/1.5 "JetBrains Mono",ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+#out .g{color:#6fdc8c}#out .r{color:#ff8a80}#out .y{color:#f2c94c}#out .b{color:#8fb0ff}#out .d{color:#8a94b4}#out .c{color:#fff;margin-top:6px}
+.cmdl{display:flex;gap:8px;align-items:center;border-top:1px solid #1d2440;padding:6px 14px}
+.cmdl label{color:#8fb0ff;font:13.5px "JetBrains Mono",monospace;white-space:nowrap}
+#cmd{flex:1;background:transparent;border:0;color:#fff;font:16px "JetBrains Mono",monospace;outline:none;min-height:40px}
+.zones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zone{background:var(--zone);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.zone.wide{grid-column:1/-1}
+.zone h3{font-size:18px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;align-items:baseline}
+.zone h3 small{font:400 13px Inter,sans-serif;letter-spacing:0;color:var(--mute)}
+.file{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:36px;padding:6px 8px;margin-top:5px;border:1px solid var(--line);border-radius:5px;background:var(--card);color:var(--ink);font:13.5px "JetBrains Mono",monospace;text-align:left}
+button.file:hover{border-color:var(--cob)}
+.file.add{justify-content:center;color:var(--cob);border-style:dashed;font-family:Inter,sans-serif}
+.file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd{font:600 12px Inter,sans-serif;padding:2px 6px;border-radius:4px;flex:none}
+.bd.x{color:var(--red);background:light-dark(#fde8e6,#3a1512)}
+.bd.s{color:light-dark(#5c4300,#ffd970);background:light-dark(#ffe9a8,#4a3a08)}
+.bd.i{color:var(--mute);border:1px dashed var(--line)}
+.empty{color:var(--mute);font-size:14px;margin:8px 0 0}
+.warn{color:var(--red);font-size:14px;font-weight:600;margin:6px 0 0}
+.gwrap{max-height:290px;overflow:auto;margin-top:8px}
+.gr{position:relative;padding-left:calc(var(--gw) + 6px);font-size:13px}
+.gr svg{position:absolute;left:0;top:0}
+.gr path{fill:none;stroke-width:2}
+.cr{height:30px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.cr code{color:var(--mute)}
+.cr span{overflow:hidden;text-overflow:ellipsis;flex:1}
+.cr small{color:var(--mute);flex:none}
+.cr i{font:600 12px Inter,sans-serif;padding:1px 6px;border-radius:4px;flex:none}
+i.h{background:var(--cob);color:light-dark(#fff,#0a0d18)}
+i.b{border:1px solid var(--cob);color:var(--cob)}
+i.o{border:1px solid var(--mute);color:var(--mute)}
+i.t{background:#ffe600;color:#1a1a00}
+.meta{font-size:14px;color:var(--mute);margin:8px 0 4px}
+.pr{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:10px;margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pr .ok{color:var(--ok);font-weight:600}.pr .x{color:var(--red);font-weight:600}
+.ghbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:min(560px,calc(100vw - 32px));padding:18px}
+dialog::backdrop{background:#0008}
+dialog label{display:block;font-weight:600;font-size:14px;margin:8px 0 4px}
+dialog input,dialog textarea{width:100%;font:16px "JetBrains Mono",monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+.guide{border-top:1px solid var(--line)}
+.guide h2{font-size:clamp(26px,3.2vw,36px);margin:36px 0 12px}
+.guide h2:first-child{margin-top:0}
+.lede{max-width:70ch;margin:0 0 16px}
+.flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch}
+.fz{border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--zone)}
+.fz h3{font-size:19px}
+.fz p{margin:6px 0 0;font-size:14px}
+.fz em{color:var(--mute);font-style:normal;font-size:13px}
+.fz.gh{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fz.gh em{color:inherit;opacity:.75}
+.ar{display:flex;flex-direction:column;justify-content:center;gap:6px;font:600 12.5px "JetBrains Mono",monospace;color:var(--cob);white-space:nowrap}
+.ar .f::after{content:" →"}.ar .k::before{content:"← "}
+.ar .k{color:var(--mute)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:14px;color:var(--mute);font-weight:600}
+td:first-child code{white-space:nowrap}
+.safe{color:var(--ok);font-weight:600}.risk{color:var(--red);font-weight:600}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 40px;padding-left:0;list-style:none}
+.cols li{border-top:1px solid var(--line);padding:10px 0 4px}
+.cols b{display:block}
+.code{position:relative;background:#0b0e1a;color:#d7dcef;border-radius:8px;padding:14px 16px;font:14px/1.6 "JetBrains Mono",monospace;overflow-x:auto;max-width:860px}
+.code .d{color:#8a94b4}
+.code button{position:absolute;top:8px;right:8px;background:#1d2440;color:#fff;border:0;border-radius:5px;padding:6px 10px;min-height:34px}
+.src{color:var(--mute);font-size:14px;margin-top:28px}
+@media(max-width:960px){.lab{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:820px){.flow{grid-template-columns:minmax(0,1fr)}.ar{flex-direction:row;justify-content:center;gap:16px}.ar .f::after{content:" ↓"}.ar .k::before{content:"↑ "}.cols{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.zones{grid-template-columns:minmax(0,1fr)}table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{border:0;padding:3px 0}.stack td::before{content:attr(data-l);display:block;color:var(--mute);font-size:12px}td:first-child code{white-space:normal}}
+@media(prefers-reduced-motion:no-preference){.won{animation:pop .35s ease-out}@keyframes pop{from{transform:translateY(6px);opacity:0}}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="band">
+  <div class="wrap">
+    <div>
+      <h1>Git 80/20 Sandbox</h1>
+      <p>20% kiến thức Git đủ dùng cho 80% công việc hằng ngày, kèm một terminal và GitHub giả lập để thực hành. Không có gì ở đây đụng tới repo thật.</p>
+    </div>
+    <nav><a href="#sandbox">Sandbox</a><a href="#guide">Tóm tắt 80/20</a></nav>
+  </div>
+</header>
+
+<main>
+<section class="band" id="sandbox" aria-label="Sandbox">
+  <div class="wrap">
+    <div class="chips" id="chips" role="tablist" aria-label="Nhiệm vụ"></div>
+    <div class="lab">
+      <div>
+        <div class="mis" id="mis"></div>
+        <div class="term">
+          <div id="out" aria-live="polite"></div>
+          <form class="cmdl" id="cmdf"><label for="cmd" id="prompt">~/git-practice $</label><input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gõ lệnh, ví dụ git status"></form>
+        </div>
+      </div>
+      <div class="zones">
+        <div class="zone"><h3>Working directory <small>hậu trường: file của bạn</small></h3><div id="wd"></div></div>
+        <div class="zone"><h3>Staging area <small>cánh gà: commit kế tiếp</small></h3><div id="sg"></div></div>
+        <div class="zone wide"><h3>Local repository <small>sân khấu: lịch sử trong .git</small></h3><div id="lr"></div></div>
+        <div class="zone wide"><h3>GitHub <small>truyền hình: github.com/you/git-practice (giả lập)</small></h3><div id="gh"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band guide" id="guide" aria-label="Tóm tắt 80/20">
+  <div class="wrap">
+    <h2>Bốn nơi code của bạn tồn tại</h2>
+    <p class="lede">Gần như mọi lệnh Git chỉ là chuyển thay đổi từ ô này sang ô kế tiếp. Nói được một file đang ở ô nào là bạn đã hiểu Git. Muốn biết thì chạy <code>git status</code>.</p>
+    <div class="flow">
+      <div class="fz"><h3>Working directory</h3><em>Hậu trường, phòng trang điểm</em><p>Thư mục bạn đang sửa. File mới là <b>untracked</b>, file đã sửa là <b>modified</b>.</p></div>
+      <div class="ar"><span class="f">git add</span><span class="k">restore --staged</span></div>
+      <div class="fz"><h3>Staging area</h3><em>Cánh gà: danh sách cầu thủ đăng ký ra sân</em><p>Những gì sẽ nằm trong snapshot kế tiếp. File ở đây là <b>staged</b>.</p></div>
+      <div class="ar"><span class="f">git commit</span><span class="k">reset --soft</span></div>
+      <div class="fz"><h3>Local repository</h3><em>Sân khấu, album ảnh trong .git</em><p>Mỗi commit là một bản chụp toàn bộ dự án, có mã SHA-1 riêng. Chạy offline.</p></div>
+      <div class="ar"><span class="f">git push</span><span class="k">git pull</span></div>
+      <div class="fz gh"><h3>GitHub (remote)</h3><em>Truyền hình, Google Photos cho code</em><p>Bản dùng chung, tên quy ước là <code>origin</code>. Tải về một lần bằng <code>git clone</code>.</p></div>
+    </div>
+
+    <h2>14 lệnh làm được phần lớn công việc</h2>
+    <div class="scroll">
+    <table class="stack">
+      <thead><tr><th>Lệnh</th><th>Tác dụng</th><th>Khi nào dùng</th></tr></thead>
+      <tbody>
+        <tr><td><code>git clone &lt;url&gt;</code></td><td>Tải repo về kèm toàn bộ lịch sử</td><td>Một lần cho mỗi dự án. Sau đó dùng <code>git pull</code></td></tr>
+        <tr><td><code>git init</code></td><td>Bắt đầu theo dõi thư mục hiện tại (tạo <code>.git</code>)</td><td>Dự án mới tinh</td></tr>
+        <tr><td><code>git status</code></td><td>Cho biết mỗi file đang ở ô nào</td><td>Trước mỗi lần add, commit, chuyển nhánh, push</td></tr>
+        <tr><td><code>git add &lt;file&gt;</code> / <code>git add .</code></td><td>Đưa thay đổi vào staging</td><td>Chọn những gì vào snapshot kế tiếp</td></tr>
+        <tr><td><code>git commit -m "msg"</code></td><td>Lưu snapshot đã stage vào lịch sử</td><td>Mỗi bước nhỏ hoàn thành, message nói rõ làm gì và vì sao</td></tr>
+        <tr><td><code>git log --oneline --graph --all</code></td><td>Xem lịch sử và các nhánh, mỗi commit một dòng</td><td>Tìm mã hash, xem nhánh đang trỏ đâu</td></tr>
+        <tr><td><code>git checkout -b &lt;nhánh&gt;</code></td><td>Tạo nhánh mới và chuyển sang luôn</td><td>Bắt đầu mỗi tính năng hoặc bản sửa lỗi</td></tr>
+        <tr><td><code>git checkout &lt;nhánh&gt;</code></td><td>Chuyển nhánh (<code>git switch</code> cũng vậy)</td><td>Đổi qua lại giữa các việc</td></tr>
+        <tr><td><code>git merge &lt;nhánh&gt;</code></td><td>Gộp commit của nhánh khác vào nhánh hiện tại</td><td>Xong tính năng ở local; lấy main mới vào nhánh</td></tr>
+        <tr><td><code>git push -u origin &lt;nhánh&gt;</code></td><td>Đẩy nhánh lên và nhớ nơi đẩy</td><td>Lần đầu push một nhánh; sau đó chỉ cần <code>git push</code></td></tr>
+        <tr><td><code>git pull</code></td><td><code>git fetch</code> + merge từ GitHub</td><td>Đầu ngày làm việc; sau khi PR được merge</td></tr>
+        <tr><td><code>git restore &lt;file&gt;</code> / <code>--staged</code></td><td>Bỏ thay đổi / đưa file ra khỏi staging</td><td>Trước khi commit</td></tr>
+        <tr><td><code>git stash</code> / <code>git stash pop</code></td><td>Cất tạm việc đang làm dở, rồi lấy lại</td><td>Cần chuyển nhánh gấp giữa chừng</td></tr>
+        <tr><td><code>git tag -a v1.0 -m "msg"</code></td><td>Đặt tên phiên bản cho một commit</td><td>Trước buổi demo hoặc báo cáo khách hàng; nhớ push tag</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2>Một ngày làm việc với Git</h2>
+    <p class="lede">Vòng lặp GitHub Flow: nhánh ngắn, pull request, merge, dọn dẹp. Nhiệm vụ 13 trong sandbox đi qua đúng vòng này.</p>
+    <div class="code"><button type="button" id="copy">Sao chép</button><pre id="day" style="margin:0">git checkout main &amp;&amp; git pull          <span class="d"># bắt đầu từ main mới nhất</span>
+git checkout -b feature/sales-chart      <span class="d"># mỗi việc một nhánh</span>
+<span class="d"># ...sửa code...</span>
+git status
+git add .
+git commit -m "Add monthly sales chart"
+git push -u origin feature/sales-chart   <span class="d"># rồi mở Pull Request trên GitHub</span>
+<span class="d"># review xong, merge PR trên GitHub, rồi:</span>
+git checkout main &amp;&amp; git pull
+git branch -d feature/sales-chart        <span class="d"># xóa nhánh đã merge</span></pre></div>
+
+    <h2>Hoàn tác: dùng công cụ nhẹ nhất có thể</h2>
+    <div class="scroll">
+    <table class="stack">
+      <thead><tr><th>Bạn muốn</th><th>Lệnh</th><th>Rủi ro</th></tr></thead>
+      <tbody>
+        <tr><td>Đưa file ra khỏi staging nhưng giữ thay đổi</td><td><code>git restore --staged &lt;file&gt;</code></td><td class="safe">An toàn</td></tr>
+        <tr><td>Cất tạm việc dở để có thư mục sạch</td><td><code>git stash</code>, sau đó <code>git stash pop</code></td><td class="safe">An toàn</td></tr>
+        <tr><td>Hoàn tác commit mà người khác đã có</td><td><code>git revert &lt;hash&gt;</code></td><td class="safe">An toàn: thêm một commit đảo ngược</td></tr>
+        <tr><td>Sửa message commit cuối hoặc thêm file bị quên</td><td><code>git commit --amend -m "..."</code></td><td class="risk">Viết lại commit: chỉ dùng trước khi push</td></tr>
+        <tr><td>Bỏ thay đổi chưa stage</td><td><code>git restore &lt;file&gt;</code></td><td class="risk">Mất vĩnh viễn, không khôi phục được</td></tr>
+        <tr><td>Kéo nhánh lùi lại và xóa các commit phía sau</td><td><code>git reset --hard &lt;hash&gt;</code></td><td class="risk">Xóa công sức: chỉ dùng cho thử nghiệm local</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2>10 quy tắc giúp bạn tránh rắc rối</h2>
+    <ol class="cols">
+      <li><b>Đi làm thì không commit thẳng lên main.</b>Main luôn phải ở trạng thái deploy được. Tạo nhánh, mở pull request, review, rồi merge.</li>
+      <li><b>Chạy git status trước khi add, commit, chuyển nhánh.</b>Phần lớn lỗi là do một file nằm sai ô.</li>
+      <li><b>Clone một lần, sau đó pull.</b>Clone lại sẽ bỏ mất lịch sử và các nhánh local của bạn.</li>
+      <li><b>Message phải có ý nghĩa.</b>"Add login validation", đừng viết "update" hay "first commit". Tiếng Anh, ngắn, cụ thể.</li>
+      <li><b>Viết .gitignore trước lần git add . đầu tiên.</b>Loại <code>.env</code>, API key, <code>*.log</code>, <code>__pycache__/</code>, file dữ liệu lớn. Bí mật đã commit thì nằm mãi trong lịch sử.</li>
+      <li><b>git push không đẩy tag.</b>Dùng <code>git push origin v1.0</code> hoặc <code>git push --tags</code>.</li>
+      <li><b>Fetch để xem, pull để áp dụng.</b><code>git fetch</code> chỉ cập nhật <code>origin/main</code>; <code>git pull</code> còn merge vào nhánh của bạn.</li>
+      <li><b>Push bị từ chối là chuyện bình thường.</b>Có người push trước: <code>git pull</code>, sửa conflict nếu có, rồi push lại. Đừng <code>--force</code> lên nhánh dùng chung.</li>
+      <li><b>Conflict chỉ là hai người sửa cùng dòng.</b>Chọn một bên hoặc cả hai, xóa các dấu <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> <code>=======</code> <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>, rồi add và commit.</li>
+      <li><b>Không viết lại lịch sử đã chia sẻ.</b>Không amend, rebase hay reset commit mà người khác đã pull. Xóa nhánh sau khi PR đã merge.</li>
+    </ol>
+
+    <h2>Tạm thời có thể bỏ qua</h2>
+    <p class="lede">Nhánh release và hotfix của GitFlow, rebase tương tác (<code>rebase -i</code>), Git hooks và pre-commit, <code>.gitattributes</code>, nhánh orphan, credential helper, và sự khác nhau giữa <code>--soft</code>/<code>--mixed</code> của reset. Học từng thứ khi team hoặc dự án cần; sách Pro Git (git-scm.com/book) có đủ cả.</p>
+    <p class="src">Dựa trên AIO2025 Module 1, buổi 04: Git &amp; GitHub for Version Control. Sandbox là trình mô phỏng để học: hỗ trợ các lệnh ở trên, đơn giản hóa diff, conflict (mỗi file một vùng xung đột) và không có trình soạn thảo. Lan là đồng đội giả lập. Thông báo của git giữ nguyên tiếng Anh như khi dùng thật.</p>
+  </div>
+</section>
+</main>
+
+<dialog id="ed">
+  <form method="dialog" id="edf">
+    <h3 id="edh">Sửa file</h3>
+    <label for="edn">Tên file</label>
+    <input id="edn" autocomplete="off" spellcheck="false">
+    <label for="edt">Nội dung</label>
+    <textarea id="edt" rows="10" spellcheck="false"></textarea>
+    <div class="bar"><button class="btn" value="save">Lưu</button><button class="btn2" value="cancel">Hủy</button></div>
+  </form>
+</dialog>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const URL0='https://github.com/you/git-practice.git';
+const HELP=`Shell: ls [-a]  cat <file>  echo "text" > file  echo "text" >> file  touch  rm  edit <file>  clear  pwd
+Git:   init  clone  config  status  add  commit [-m] [-a] [--amend]  log [--oneline] [--graph] [--all]
+       show  diff [--staged]  branch [-d|-D|-m|-a|-r|-vv]  checkout [-b]  switch [-c]  merge [--no-ff|--abort]
+       restore [--staged]  reset [--soft|--hard]  revert  stash [pop|list]  tag [-a -m|-d|-l]
+       remote [add|remove|-v]  push [-u] [--tags] [--delete]  fetch  pull
+Nối nhiều lệnh bằng &&. Phím mũi tên lên/xuống gọi lại lệnh cũ. Bấm vào file trong Working directory để sửa.`;
+const hx=s=>{let o='';for(let k=0;k<5;k++){let h=(2166136261^k)>>>0;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);o+=(h>>>0).toString(16).padStart(8,'0')}return o};
+const fresh=()=>({objs:{},n:0,work:{},repo:null,mate:0,won:false,cfg:{'user.name':'You','user.email':'you@example.com'},gh:{exists:false,branches:{},tags:{},prs:[]}});
+let S=fresh(),silent=false,cur=1,done=new Set();
+const term=$('#out');
+const short=id=>id.slice(0,7);
+const C=id=>S.objs[id];
+const tree=id=>id?C(id).tree:{};
+const R=()=>S.repo;
+const headId=()=>R().branches[R().head];
+const put=(o,k,v)=>{if(v===undefined)delete o[k];else o[k]=v};
+const has=(a,...f)=>f.some(x=>a.includes(x));
+const val=(a,f)=>{const i=a.indexOf(f);return i>=0?a.splice(i,2)[1]:undefined};
+const keys=(...ts)=>[...new Set(ts.flatMap(t=>Object.keys(t)))].sort();
+const same=(a,b)=>keys(a,b).every(k=>a[k]===b[k]);
+const L=c=>c?c.replace(/\n$/,'').split('\n'):[];
+const glob=s=>new RegExp('^'+s.replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*').replace(/\?/g,'.')+'$');
+const ign=f=>{const g=S.work['.gitignore'];if(!g||f==='.gitignore')return false;return L(g).some(l=>{l=l.trim().replace(/^\//,'').replace(/\/$/,'');return l&&l[0]!=='#'&&(glob(l).test(f)||f.startsWith(l+'/'))})};
+function mk(msg,parents,t,author){S.n++;const id=hx(msg+parents.join()+JSON.stringify(t)+S.n);S.objs[id]={id,msg,parents,tree:{...t},n:S.n,author:author||S.cfg['user.name'],time:Date.now()-(500-S.n)*420000};return id}
+function anc(id){const s=new Set(),q=id?[id]:[];while(q.length){const x=q.pop();if(s.has(x))continue;s.add(x);q.push(...C(x).parents)}return s}
+const isAnc=(a,b)=>!!a&&anc(b).has(a);
+function base(a,b){const A=anc(a);let best=null;for(const x of anc(b))if(A.has(x)&&(!best||C(x).n>C(best).n))best=x;return best}
+function merge3(b,o,t,label){const tr={},cf=[];for(const f of keys(b,o,t)){const B=b[f],O=o[f],T=t[f];let v;if(O===T)v=O;else if(O===B)v=T;else if(T===B)v=O;else{cf.push(f);const x=L(O),y=L(T);let p=0;while(p<x.length&&p<y.length&&x[p]===y[p])p++;let s=0;while(s<x.length-p&&s<y.length-p&&x[x.length-1-s]===y[y.length-1-s])s++;v=[...x.slice(0,p),'<<<<<<< HEAD',...x.slice(p,x.length-s),'=======',...y.slice(p,y.length-s),'>>>>>>> '+label,...x.slice(x.length-s)].join('\n')+'\n'}if(v!==undefined)tr[f]=v}return{tree:tr,cf}}
+function st(){const h=tree(headId()),ix=R().index,w=S.work,a=[],b=[],u=[];for(const f of keys(h,ix))if(h[f]!==ix[f])a.push([f,!(f in h)?'new file':!(f in ix)?'deleted':'modified']);for(const f of Object.keys(ix).sort())if(!(f in w))b.push([f,'deleted']);else if(w[f]!==ix[f])b.push([f,'modified']);for(const f of Object.keys(w).sort())if(!(f in ix)&&!ign(f))u.push(f);return{a,b,u}}
+const dirty=()=>{const s=st();return s.a.length+s.b.length>0};
+function setTree(t){const p=R();for(const f in p.index)if(!(f in t))delete S.work[f];for(const f in t)S.work[f]=t[f];p.index={...t}}
+const newRepo=()=>({branches:{},head:'main',index:{},tags:{},remotes:{},track:{},rrefs:{},stash:[],merging:null,cf:[]});
+function out(t,c){if(silent)return;const d=document.createElement('div');if(Array.isArray(t))for(const[s,k]of t){const e=document.createElement('span');e.textContent=s;if(k)e.className=k;d.append(e)}else{d.textContent=t;if(c)d.className=c}term.append(d)}
+const err=t=>{out(t,'r');return false};
+function tok(line){const r=[],re=/"([^"]*)"|'([^']*)'|(\S+)/g;let m;while((m=re.exec(line)))r.push(m[1]??m[2]??m[3]);return r}
+function rev(r){const p=R();if(!r||r==='HEAD')return headId();const m=r.match(/^(.+?)~(\d*)$/);if(m){let id=rev(m[1]);for(let i=0;i<(+m[2]||1)&&id;i++)id=C(id).parents[0];return id}if(p.branches[r])return p.branches[r];if(p.tags[r])return p.tags[r].id;if(p.rrefs[r])return p.rrefs[r];if(r.length>=4&&/^[0-9a-f]+$/.test(r)){const h=Object.keys(S.objs).filter(k=>k.startsWith(r));if(h.length===1)return h[0]}return null}
+function deco(id){const p=R(),r=[];for(const[b,x]of Object.entries(p.branches))if(x===id)b===p.head?r.unshift('HEAD -> '+b):r.push(b);for(const[b,x]of Object.entries(p.rrefs))if(x===id)r.push(b);for(const[t,x]of Object.entries(p.tags))if(x.id===id)r.push('tag: '+t);return r.join(', ')}
+function diffOut(x,y){for(const f of keys(x,y))if(x[f]!==y[f]){out('diff --git a/'+f+' b/'+f,'b');if(!(f in x))out('new file','d');if(!(f in y))out('deleted file','d');const A=L(x[f]),B=L(y[f]);A.filter(l=>!B.includes(l)).forEach(l=>out('-'+l,'r'));B.filter(l=>!A.includes(l)).forEach(l=>out('+'+l,'g'))}}
+const stat=(x,y)=>keys(x,y).filter(f=>x[f]!==y[f]).forEach(f=>out(' '+f+(f in x?(f in y?' | changed':' | deleted'):' | new file'),'d'));
+const cnt=(from,to)=>{const A=anc(from);return[...anc(to)].filter(x=>!A.has(x)).length};
+const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+
+function go(b,msg){const p=R();if(b===p.head&&!msg)return out(`Already on '${b}'`);if(p.merging)return err('error: you need to resolve your current index first (sandbox: hãy hoàn tất hoặc hủy merge trước)');
+ const cu=tree(headId()),nt=tree(p.branches[b]);
+ if(!same(cu,nt)){const s=st(),df=[...new Set([...s.a,...s.b].map(x=>x[0]))],bad=df.filter(f=>cu[f]!==nt[f]);
+  if(bad.length)return err(`error: Your local changes to the following files would be overwritten by checkout:\n\t${bad.join('\n\t')}\nPlease commit your changes or stash them before you switch branches.\nAborting`);
+  const clash=s.u.filter(f=>f in nt&&nt[f]!==S.work[f]);if(clash.length)return err(`error: The following untracked working tree files would be overwritten by checkout:\n\t${clash.join('\n\t')}\nPlease move or remove them before you switch branches.\nAborting`);
+  const kw={},ki={};df.forEach(f=>{kw[f]=S.work[f];ki[f]=p.index[f]});setTree(nt);df.forEach(f=>{put(S.work,f,kw[f]);put(p.index,f,ki[f])})}
+ p.head=b;out(msg||`Switched to branch '${b}'`)}
+function mergeId(th,nm,noff,m){const p=R(),h=headId();
+ if(dirty())return err('error: Your local changes would be overwritten by merge.\nPlease commit your changes or stash them before you merge.\nAborting');
+ if(h&&isAnc(th,h))return out('Already up to date.');
+ if(!h||(isAnc(h,th)&&!noff)){if(h)out(`Updating ${short(h)}..${short(th)}\nFast-forward`);p.branches[p.head]=th;setTree(tree(th));stat(tree(h),tree(th));return}
+ const r=merge3(tree(base(h,th)),tree(h),tree(th),nm),msg=m||(nm.includes('/')&&p.rrefs[nm]?`Merge remote-tracking branch '${nm}'`:`Merge branch '${nm}'`)+(p.head==='main'?'':' into '+p.head);
+ if(r.cf.length){p.merging={theirs:th,msg};p.cf=r.cf;const ix={...r.tree};r.cf.forEach(f=>put(ix,f,tree(h)[f]));setTree(r.tree);p.index=ix;r.cf.forEach(f=>out(`Auto-merging ${f}\nCONFLICT (content): Merge conflict in ${f}`,'r'));return err('Automatic merge failed; fix conflicts and then commit the result.')}
+ const id=mk(msg,[h,th],r.tree);p.branches[p.head]=id;setTree(r.tree);out("Merge made by the 'ort' strategy.");stat(tree(h),r.tree)}
+
+const G={
+ init(){if(R())return out('Reinitialized existing Git repository in /sandbox/git-practice/.git/');S.repo=newRepo();out('Initialized empty Git repository in /sandbox/git-practice/.git/')},
+ config(a){const g=a.filter(x=>x!=='--global'&&x!=='--local');if(g[0]==='--list'||g[0]==='-l')return out(Object.entries(S.cfg).map(([k,v])=>k+'='+v).join('\n'));if(!g.length)return err('usage: git config [--global] <name> [<value>]');if(g.length===1)return S.cfg[g[0]]!=null?out(S.cfg[g[0]]):false;S.cfg[g[0]]=g.slice(1).join(' ')},
+ status(){const p=R(),s=st(),h=headId(),cf=p.cf;out('On branch '+p.head);if(!h)out('\nNo commits yet');
+  const tr=p.track[p.head],r=tr&&p.rrefs[tr];if(r&&h){const ah=cnt(r,h),bh=cnt(h,r);out(ah&&bh?`Your branch and '${tr}' have diverged,\nand have ${ah} and ${bh} different commits each, respectively.\n  (use "git pull" to merge the remote branch into yours)`:ah?`Your branch is ahead of '${tr}' by ${pl(ah,'commit')}.\n  (use "git push" to publish your local commits)`:bh?`Your branch is behind '${tr}' by ${pl(bh,'commit')}, and can be fast-forwarded.\n  (use "git pull" to update your local branch)`:`Your branch is up to date with '${tr}'.`)}
+  if(p.merging)out('\nYou have unmerged paths.\n  (fix conflicts and run "git commit")\n  (use "git merge --abort" to abort the merge)');
+  if(s.a.length){out('\nChanges to be committed:\n  (use "git restore --staged <file>..." to unstage)');s.a.forEach(([f,k])=>out(`\t${k}:   ${f}`,'g'))}
+  if(cf.length){out('\nUnmerged paths:\n  (use "git add <file>..." to mark resolution)');cf.forEach(f=>out('\tboth modified:   '+f,'r'))}
+  const b=s.b.filter(([f])=>!cf.includes(f));if(b.length){out('\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)');b.forEach(([f,k])=>out(`\t${k}:   ${f}`,'r'))}
+  if(s.u.length){out('\nUntracked files:\n  (use "git add <file>..." to include in what will be committed)');s.u.forEach(f=>out('\t'+f,'r'))}
+  if(!s.a.length&&!s.b.length&&!s.u.length&&!cf.length)out(h?'\nnothing to commit, working tree clean':'\nnothing to commit (create/copy files and use "git add" to track)')},
+ add(a){const p=R(),all=has(a,'.','-A','--all'),fs=all?keys(S.work,p.index):a.filter(x=>x[0]!=='-');if(!fs.length)return err('Nothing specified, nothing added.');
+  for(const f of fs){if(!(f in S.work)&&!(f in p.index))return err(`fatal: pathspec '${f}' did not match any files`);
+   if(ign(f)&&!(f in p.index)){if(all)continue;return err(`The following paths are ignored by one of your .gitignore files:\n${f}\nhint: Use -f if you really want to add them.`)}
+   if(p.cf.includes(f)){if((S.work[f]||'').includes('<<<<<<<'))return err(`sandbox: ${f} vẫn còn dấu conflict (<<<<<<< ======= >>>>>>>).\nBấm vào file trong Working directory, giữ những dòng bạn muốn, xóa các dòng dấu, rồi git add.`);p.cf=p.cf.filter(x=>x!==f)}
+   put(p.index,f,S.work[f])}},
+ commit(a){const p=R(),i=a.indexOf('-am');if(i>=0)a.splice(i,1,'-a','-m');const m=val(a,'-m'),am=a.includes('--amend');
+  if(has(a,'-a','--all'))for(const f of Object.keys(p.index))if(!p.cf.includes(f))put(p.index,f,S.work[f]);
+  if(p.cf.length)return err("error: Committing is not possible because you have unmerged files.\nhint: Fix them up in the work tree, and then use 'git add <file>'\nfatal: Exiting because of an unresolved conflict.");
+  const h=headId();
+  if(am){if(!h)return err('fatal: You have nothing to amend.');const o=C(h),id=mk(m||o.msg,o.parents,p.index);p.branches[p.head]=id;return out(`[${p.head} ${short(id)}] ${C(id).msg}`+(m?'':'\n(sandbox: không có trình soạn thảo nên giữ message cũ; dùng --amend -m "message mới")'),'')}
+  if(m==null&&!p.merging)return err('sandbox: ở đây không có trình soạn thảo. Dùng: git commit -m "message của bạn"');
+  if(!p.merging&&same(p.index,tree(h))){const s=st();out('On branch '+p.head);return err(s.b.length||s.u.length?'no changes added to commit (use "git add" and/or "git commit -a")':'nothing to commit, working tree clean')}
+  const par=h?[h]:[];if(p.merging)par.push(p.merging.theirs);const id=mk(m||p.merging.msg,par,p.index);p.branches[p.head]=id;p.merging=null;
+  const n=keys(tree(h),p.index).filter(f=>tree(h)[f]!==p.index[f]).length;out(`[${p.head}${h?'':' (root-commit)'} ${short(id)}] ${C(id).msg}\n ${pl(n,'file')} changed`)},
+ log(a){const p=R(),one=a.includes('--oneline'),gr=a.includes('--graph'),all=a.includes('--all'),ni=a.find(x=>/^-\d+$/.test(x)),lim=ni?-ni:+(val(a,'-n')||1e9),pos=a.filter(x=>x[0]!=='-'),start=pos[0]?rev(pos[0]):headId();
+  if(!all&&!start)return err(pos[0]?`fatal: ambiguous argument '${pos[0]}': unknown revision`:`fatal: your current branch '${p.head}' does not have any commits yet`);
+  const set=new Set(),st0=all?[...Object.values(p.branches),...Object.values(p.rrefs)]:[start];st0.forEach(s=>anc(s).forEach(x=>set.add(x)));
+  for(const c of [...set].map(C).sort((x,y)=>y.n-x.n).slice(0,lim)){const d=deco(c.id);
+   if(one)out([[gr?'* ':'',''],[short(c.id),'y'],[d?' ('+d+')':'','b'],[' '+c.msg,'']]);
+   else{out([['commit '+c.id,'y'],[d?' ('+d+')':'','b']]);if(c.parents.length>1)out('Merge: '+c.parents.map(short).join(' '));out(`Author: ${c.author} <${c.author.toLowerCase()}@example.com>\nDate:   ${new Date(c.time).toString().slice(0,24)}\n\n    ${c.msg}\n`)}}
+  if(gr)out('(đường nối các nhánh được vẽ ở khung Local repository)','d')},
+ show(a){const p=R(),r=a.find(x=>x[0]!=='-')||'HEAD',t=p.tags[r];if(t&&t.ann)out(`tag ${r}\nTagger: ${t.by}\n\n${t.msg}\n`);const id=rev(r);if(!id)return err(`fatal: ambiguous argument '${r}': unknown revision`);const c=C(id),d=deco(id);
+  out([['commit '+c.id,'y'],[d?' ('+d+')':'','b']]);out(`Author: ${c.author}\n\n    ${c.msg}\n`);diffOut(tree(c.parents[0]),c.tree)},
+ diff(a){const p=R();if(has(a,'--staged','--cached'))return diffOut(tree(headId()),p.index);const w={};for(const f in p.index)if(f in S.work)w[f]=S.work[f];diffOut(p.index,w)},
+ branch(a){const p=R(),h=headId();let u=val(a,'-u')||val(a,'--set-upstream-to');const ue=a.find(x=>x.startsWith('--set-upstream-to='));if(ue)u=ue.split('=')[1];const pos=a.filter(x=>x[0]!=='-');
+  if(u){if(!p.rrefs[u])return err(`error: the requested upstream branch '${u}' does not exist`);p.track[p.head]=u;return out(`branch '${p.head}' set up to track '${u}'.`)}
+  if(has(a,'-d','-D','--delete')){for(const b of pos){const t=p.branches[b];if(!t)return err(`error: branch '${b}' not found.`);if(b===p.head)return err(`error: Cannot delete branch '${b}' checked out at '/sandbox/git-practice'`);
+    if(!has(a,'-D')&&!isAnc(t,h)&&!(p.track[b]&&isAnc(t,p.rrefs[p.track[b]])))return err(`error: The branch '${b}' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D ${b}'.`);
+    out(`Deleted branch ${b} (was ${short(t)}).`);delete p.branches[b];delete p.track[b]}return}
+  if(has(a,'-m','-M')){const[o,n]=pos.length>1?pos:[p.head,pos[0]];if(!n)return err('fatal: branch name required');if(p.branches[n]&&n!==o&&!has(a,'-M'))return err(`fatal: a branch named '${n}' already exists`);
+   if(p.branches[o]){const t=p.branches[o];delete p.branches[o];p.branches[n]=t}else if(o!==p.head)return err(`error: refname refs/heads/${o} not found`);if(p.head===o)p.head=n;if(p.track[o]&&o!==n){p.track[n]=p.track[o];delete p.track[o]}return}
+  if(pos.length){const[b,s]=pos;if(p.branches[b])return err(`fatal: a branch named '${b}' already exists`);const id=s?rev(s):h;if(!id)return err(`fatal: not a valid object name: '${s||p.head}'`);p.branches[b]=id;return}
+  const r=has(a,'-r'),al=has(a,'-a'),vv=has(a,'-vv'),v=vv||has(a,'-v');
+  if(!r)Object.keys(p.branches).sort().forEach(b=>out([[b===p.head?'* ':'  ',''],[b,b===p.head?'g':''],[v?`  ${short(p.branches[b])}${vv&&p.track[b]?' ['+p.track[b]+']':''} ${C(p.branches[b]).msg}`:'','d']]));
+  if(r||al)Object.keys(p.rrefs).sort().forEach(b=>out('  '+(al?'remotes/':'')+b,'r'))},
+ checkout(a,sw){const p=R();if(a[0]==='--')return G.restore(a.slice(1));const nb=has(a,'-b','-B','-c','-C'),pos=a.filter(x=>x[0]!=='-');
+  if(nb){const[b,s]=pos;if(!b)return err('fatal: branch name required');if(p.branches[b])return err(`fatal: a branch named '${b}' already exists`);
+   if(!headId()&&!s){p.head=b;return out(`Switched to a new branch '${b}'`)}
+   const id=s?rev(s):headId();if(!id)return err(`fatal: invalid reference: ${s}`);p.branches[b]=id;
+   if(go(b,`Switched to a new branch '${b}'`)===false){delete p.branches[b];return false}
+   if(s&&p.rrefs[s]){p.track[b]=s;out(`branch '${b}' set up to track '${s}'.`)}return}
+  const b=pos[0];if(!b)return err('fatal: you must specify a branch to switch to');if(p.branches[b])return go(b);
+  const rr=Object.keys(p.rrefs).find(k=>k.split('/').slice(1).join('/')===b);
+  if(rr){p.branches[b]=p.rrefs[rr];if(go(b)===false){delete p.branches[b];return false}p.track[b]=rr;return out(`branch '${b}' set up to track '${rr}'.`)}
+  if(!sw&&b in p.index)return G.restore([b]);
+  if(rev(b))return err('sandbox: chưa mô phỏng detached HEAD. Hãy checkout bằng tên nhánh.');
+  return err(sw?`fatal: invalid reference: ${b}`:`error: pathspec '${b}' did not match any file(s) known to git`)},
+ switch(a){return G.checkout(a,1)},
+ merge(a){const p=R();if(a.includes('--abort')){if(!p.merging)return err('fatal: There is no merge to abort (MERGE_HEAD missing).');p.merging=null;p.cf=[];setTree(tree(headId()));return}
+  if(p.merging)return err('error: Merging is not possible because you have unmerged files.');const m=val(a,'-m'),nm=a.find(x=>x[0]!=='-');if(!nm)return err('fatal: No remote for the current branch.');
+  const th=rev(nm);if(!th)return err(`merge: ${nm} - not something we can merge`);return mergeId(th,nm,a.includes('--no-ff'),m)},
+ restore(a){const p=R(),sg=has(a,'--staged','-S'),f0=a.filter(x=>x[0]!=='-'),h=tree(headId()),fs=f0.includes('.')?(sg?keys(p.index,h):Object.keys(p.index)):f0;
+  if(!fs.length)return err('fatal: you must specify path(s) to restore');
+  for(const f of fs){if(sg){if(!(f in p.index)&&!(f in h))return err(`error: pathspec '${f}' did not match any file(s) known to git`);put(p.index,f,h[f])}else{if(!(f in p.index))return err(`error: pathspec '${f}' did not match any file(s) known to git`);S.work[f]=p.index[f]}}},
+ reset(a){const p=R(),mode=a.includes('--hard')?'hard':a.includes('--soft')?'soft':'mixed',pos=a.filter(x=>x[0]!=='-');
+  if(pos.length>1||(pos.length&&!rev(pos[0])))return G.restore(['--staged',...pos.filter(x=>!rev(x))]);
+  const t=pos[0]?rev(pos[0]):headId();if(!t)return err('fatal: ambiguous argument: unknown revision');p.branches[p.head]=t;p.merging=null;p.cf=[];
+  if(mode==='soft')return;if(mode==='mixed'){p.index={...tree(t)};return}setTree(tree(t));out(`HEAD is now at ${short(t)} ${C(t).msg}`)},
+ revert(a){const p=R(),r=a.find(x=>x[0]!=='-'),id=r&&rev(r);if(!id)return err(`fatal: bad revision '${r||''}'`);const c=C(id);
+  if(c.parents.length>1)return err('sandbox: revert một merge commit cần -m và chưa được mô phỏng.');if(dirty())return err('error: your local changes would be overwritten by revert.\nhint: commit your changes or stash them to proceed.');
+  const m=merge3(c.tree,tree(headId()),tree(c.parents[0]),'parent of '+short(id));if(m.cf.length)return err(`error: could not revert ${short(id)}: conflict in ${m.cf.join(', ')} (sandbox chưa mô phỏng conflict khi revert)`);
+  const n=mk(`Revert "${c.msg}"`,[headId()],m.tree);p.branches[p.head]=n;setTree(m.tree);out(`[${p.head} ${short(n)}] Revert "${c.msg}"`);stat(tree(id),m.tree)},
+ stash(a){const p=R(),s=a[0]||'push',h=headId();
+  if(s==='list')return p.stash.forEach((x,i)=>out(`stash@{${i}}: WIP on ${x.br}: ${short(x.base)} ${C(x.base).msg}`));
+  if(s==='push'||s==='save'||s==='-m'||s==='-u'){if(!h)return err('You do not have the initial commit yet');if(!dirty())return out('No local changes to save');const t=tree(h),w={};keys(p.index,t).forEach(f=>w[f]=S.work[f]);p.stash.unshift({base:h,br:p.head,ix:{...p.index},w});setTree(t);return out(`Saved working directory and index state WIP on ${p.head}: ${short(h)} ${C(h).msg}`)}
+  if(s==='pop'||s==='apply'){const x=p.stash[0];if(!x)return err('error: No stash entries found.');const b=tree(x.base);for(const f of Object.keys(x.w))if(x.w[f]!==b[f])put(S.work,f,x.w[f]);for(const f of Object.keys(x.ix))if(!(f in b))p.index[f]=x.ix[f];if(s==='pop'){p.stash.shift();out('Dropped refs/stash@{0}','d')}return G.status()}
+  if(s==='drop'){if(!p.stash.length)return err('error: No stash entries found.');p.stash.shift();return out('Dropped refs/stash@{0}')}
+  return err('sandbox: chưa mô phỏng git stash '+s)},
+ tag(a){const p=R(),m=val(a,'-m'),l=a.includes('-l')?val(a,'-l'):undefined,ann=has(a,'-a'),pos=a.filter(x=>x[0]!=='-');
+  if(has(a,'-d')){for(const t of pos){if(!p.tags[t])return err(`error: tag '${t}' not found.`);out(`Deleted tag '${t}' (was ${short(p.tags[t].id)})`);delete p.tags[t]}return}
+  if(!pos.length){Object.keys(p.tags).sort().filter(t=>!l||glob(l).test(t)).forEach(t=>out(t));return}
+  const[t,r]=pos;if(p.tags[t])return err(`fatal: tag '${t}' already exists`);const id=r?rev(r):headId();if(!id)return err('fatal: Failed to resolve HEAD as a valid ref.');
+  if(ann&&m==null)return err('sandbox: không có trình soạn thảo. Dùng: git tag -a v1.0 -m "message"');p.tags[t]={id,ann:ann||m!=null,msg:m||'',by:S.cfg['user.name']}},
+ remote(a){const p=R(),[s,n,u]=a;if(!s)return Object.keys(p.remotes).forEach(r=>out(r));
+  if(s==='-v')return Object.entries(p.remotes).forEach(([r,x])=>out(`${r}\t${x} (fetch)\n${r}\t${x} (push)`));
+  if(s==='add'){if(!n||!u)return err('usage: git remote add <name> <url>');if(p.remotes[n])return err(`error: remote ${n} already exists.`);p.remotes[n]=u;return}
+  if(s==='remove'||s==='rm'){if(!p.remotes[n])return err(`error: No such remote: '${n}'`);delete p.remotes[n];Object.keys(p.rrefs).filter(k=>k.startsWith(n+'/')).forEach(k=>delete p.rrefs[k]);return}
+  if(s==='set-url'&&p.remotes[n]&&u){p.remotes[n]=u;return}return err('sandbox: chưa mô phỏng git remote '+s)},
+ push(a){const p=R(),u=has(a,'-u','--set-upstream'),lease=a.includes('--force-with-lease'),f=lease||has(a,'-f','--force'),tg=a.includes('--tags'),del=has(a,'-d','--delete');let[rn,...refs]=a.filter(x=>x[0]!=='-');
+  if(!rn){const t=p.track[p.head];if(!t&&!tg)return err(`fatal: The current branch ${p.head} has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin ${p.head}\n`);if(t){rn=t.split('/')[0];refs=tg?[]:[t.slice(rn.length+1)]}else rn='origin'}
+  if(!p.remotes[rn])return err(`fatal: '${rn}' does not appear to be a git repository\nfatal: Could not read from remote repository.`);const g=S.gh;if(!g.exists)return err(`remote: Repository not found.\nfatal: repository '${p.remotes[rn]}' not found`);
+  out('To '+p.remotes[rn],'d');
+  if(tg){let any=0;for(const[t,x]of Object.entries(p.tags))if(!g.tags[t]){g.tags[t]={...x};any=out(` * [new tag]         ${t} -> ${t}`)||1}if(!any)out('Everything up-to-date');if(!refs.length)return}
+  if(!refs.length)refs=[p.head];
+  for(let r of refs){if(r==='HEAD')r=p.head;const k=rn+'/'+r;
+   if(del){if(!g.branches[r])return err(`error: unable to delete '${r}': remote ref does not exist`);delete g.branches[r];delete p.rrefs[k];out(` - [deleted]         ${r}`);continue}
+   if(p.tags[r]&&!p.branches[r]){if(g.tags[r])out('Everything up-to-date');else{g.tags[r]={...p.tags[r]};out(` * [new tag]         ${r} -> ${r}`)}continue}
+   const l=p.branches[r];if(!l)return err(`error: src refspec ${r} does not match any\nerror: failed to push some refs to '${p.remotes[rn]}'`);const o=g.branches[r];
+   if(lease&&o&&p.rrefs[k]!==o)return err(` ! [rejected]        ${r} -> ${r} (stale info)\nerror: failed to push some refs (someone pushed since your last fetch)`);
+   if(o===l)out('Everything up-to-date');
+   else if(o&&!isAnc(o,l)&&!f)return err(` ! [rejected]        ${r} -> ${r} (fetch first)\nerror: failed to push some refs to '${p.remotes[rn]}'\nhint: Updates were rejected because the remote contains work that you do not\nhint: have locally. Integrate the remote changes (e.g. 'git pull ...')\nhint: before pushing again.`);
+   else{g.branches[r]=l;out(o?`   ${short(o)}..${short(l)}  ${r} -> ${r}${f&&!isAnc(o,l)?' (forced update)':''}`:` * [new branch]      ${r} -> ${r}`)}
+   p.rrefs[k]=l;if(u){p.track[r]=k;out(`branch '${r}' set up to track '${k}'.`)}}},
+ fetch(a){const p=R(),rn=a.find(x=>x[0]!=='-')||'origin';if(!p.remotes[rn])return err(`fatal: '${rn}' does not appear to be a git repository`);if(!S.gh.exists)return err(`remote: Repository not found.\nfatal: repository '${p.remotes[rn]}' not found`);
+  let any=0;const hd=()=>{if(!any++)out('From '+p.remotes[rn],'d')};
+  for(const[b,id]of Object.entries(S.gh.branches)){const k=rn+'/'+b,o=p.rrefs[k];if(o!==id){hd();out(o?`   ${short(o)}..${short(id)}  ${b} -> ${k}`:` * [new branch]      ${b} -> ${k}`);p.rrefs[k]=id}}
+  if(has(a,'--prune','-p'))for(const k of Object.keys(p.rrefs))if(k.startsWith(rn+'/')&&!S.gh.branches[k.slice(rn.length+1)]){hd();out(` - [deleted]         (none) -> ${k}`);delete p.rrefs[k]}
+  for(const[t,x]of Object.entries(S.gh.tags))if(!p.tags[t]){hd();p.tags[t]={...x};out(` * [new tag]         ${t} -> ${t}`)}},
+ pull(a){const p=R(),pos=a.filter(x=>x[0]!=='-');let[rn,b]=pos;
+  if(!rn){const t=p.track[p.head];if(!t)return err(`There is no tracking information for the current branch.\nPlease specify which branch you want to merge with.\n\n    git pull <remote> <branch>\n\nIf you wish to set tracking information for this branch you can do so with:\n\n    git branch --set-upstream-to=origin/<branch> ${p.head}\n`);rn=t.split('/')[0];b=t.slice(rn.length+1)}
+  b=b||p.head;if(G.fetch([rn])===false)return false;const id=p.rrefs[rn+'/'+b];if(!id)return err(`fatal: couldn't find remote ref ${b}`);if(a.includes('--rebase'))out('(sandbox: --rebase được chạy như merge)','d');return mergeId(id,rn+'/'+b)},
+ clone(a){const u=a.find(x=>x[0]!=='-');if(!u)return err('fatal: You must specify a repository to clone.');
+  if(R())return err("fatal: destination path 'git-practice' already exists and is not an empty directory.\n(sandbox: bấm Làm lại nhiệm vụ để bắt đầu từ thư mục trống)");
+  out("Cloning into 'git-practice'...");if(!S.gh.exists)return err(`remote: Repository not found.\nfatal: repository '${u}' not found`);
+  S.repo=newRepo();const p=R();p.remotes.origin=u;for(const[b,id]of Object.entries(S.gh.branches))p.rrefs['origin/'+b]=id;for(const[t,x]of Object.entries(S.gh.tags))p.tags[t]={...x};
+  const m=S.gh.branches.main;if(m){p.branches.main=m;p.track.main='origin/main';S.work={...tree(m)};p.index={...tree(m)}}out('done. (sandbox: bạn đang ở trong git-practice/)','d')}
+};
+function git(a){let sub=a.shift();if(!sub||sub==='help'||sub==='--help')return out(HELP,'d');if(sub==='--version'||sub==='version')return out('git version 2.47.0 (sandbox)');
+ const al=S.cfg['alias.'+sub];if(al&&!G[sub]){const t=tok(al);sub=t.shift();a=[...t,...a]}
+ const fn=G[sub];if(!fn)return err(`git: '${sub}' is not a git command (sandbox chưa hỗ trợ). Gõ help để xem các lệnh có sẵn.`);
+ if(!['init','clone','config'].includes(sub)&&!R())return err('fatal: not a git repository (or any of the parent directories): .git');return fn(a)}
+const SH={
+ help:()=>out(HELP,'d'),clear:()=>{term.textContent=''},pwd:()=>out('/sandbox/git-practice'),
+ cd:()=>out('sandbox: lab này chỉ có một thư mục và bạn đang ở trong đó','d'),mkdir:()=>out('sandbox: lab này chỉ có một thư mục; bỏ qua mkdir/cd và chạy git init tại đây','d'),
+ ls:a=>{const all=a.some(x=>x.startsWith('-')&&x.includes('a')),f=Object.keys(S.work).sort().filter(x=>all||x[0]!=='.');if(all&&R())f.unshift('.git');out(f.join('  ')||'(thư mục trống)')},
+ cat:a=>{for(const f of a){if(!(f in S.work))return err(`cat: ${f}: No such file or directory`);out(S.work[f].replace(/\n$/,''))}},
+ touch:a=>{for(const f of a)if(!(f in S.work))S.work[f]=''},
+ rm:a=>{for(const f of a.filter(x=>x[0]!=='-')){if(!(f in S.work))return err(`rm: cannot remove '${f}': No such file or directory`);delete S.work[f]}},
+ echo:a=>{const i=a.findIndex(x=>x[0]==='>');if(i<0)return out(a.join(' '));const m=a[i].match(/^(>>?)(.*)$/),f=m[2]||a[i+1];if(!f)return err('sandbox: thiếu tên file sau '+m[1]);const t=a.slice(0,i).join(' ')+'\n';S.work[f]=m[1]==='>>'?(S.work[f]||'')+t:t},
+ edit:a=>openEd(a[0]||'')};
+SH.nano=SH.code=SH.vim=SH.edit;
+function exec(line){if(!line)return;const a=tok(line),c=a.shift();if(c==='git')return git(a);const fn=SH[c];if(!fn)return err(`${c}: command not found (gõ help)`);return fn(a)}
+
+const MATES=[['Add requirements','requirements.txt','pandas\nscikit-learn\n'],['Add sales plot','plot.py','import matplotlib.pyplot as plt\n'],['Add data dictionary','DATA.md','sales.csv: date, store, units\n'],['Add config','config.yaml','test_size: 0.2\n']];
+function ghCreate(){S.gh={exists:true,branches:{},tags:{},prs:[]}}
+function ghCommit(b,msg,ch,who){const g=S.gh,t={...tree(g.branches[b])};for(const[f,v]of Object.entries(ch))put(t,f,v);g.branches[b]=mk(msg,g.branches[b]?[g.branches[b]]:[],t,who)}
+function ghSeed(){ghCreate();ghCommit('main','Initial commit',{'README.md':'# git-practice\nA small sales-forecasting project.\n'},'Lan');ghCommit('main','Add data loader',{'read_data.py':"import pandas as pd\ndf = pd.read_csv('sales.csv')\n"},'Lan')}
+function teammate(){const[m,f,c]=MATES[S.mate++%MATES.length];ghCommit('main',m,{[f]:c},'Lan')}
+const U=URL0;
+const M=[
+ {t:'Tự do khám phá',g:'Một thư mục trống, chưa có repo trên GitHub. Thử gì cũng được; <code>help</code> liệt kê mọi lệnh sandbox hỗ trợ, và khung GitHub có nút tạo repo.',s:[],h:['git init','echo "# My project" > README.md','git status','git add .','git commit -m "Initial commit"']},
+ {t:'Commit đầu tiên',g:'Biến thư mục trống này thành repository và commit một file <code>README.md</code>.',s:[],h:['git init','echo "# git-practice" > README.md','git status','git add README.md','git commit -m "Add README"','git log'],c:()=>headId()&&'README.md' in tree(headId())&&!dirty(),w:'Working directory, rồi <code>git add</code> vào staging, rồi <code>git commit</code> vào lịch sử. Mỗi commit là một bản chụp đầy đủ với mã SHA-1 riêng.'},
+ {t:'Chọn file để commit',g:'Có hai file mới. Chỉ commit <code>read_data.py</code>; <code>notes.txt</code> phải giữ nguyên trạng thái untracked.',s:['git init','echo "# Sales" > README.md','git add .','git commit -m "Initial commit"','echo "import pandas as pd" > read_data.py','echo "todo: ask Lan about the data" > notes.txt'],h:['git status','git add read_data.py','git commit -m "Add data loader"','git status'],c:()=>{const t=tree(headId());return t['read_data.py']&&!t['notes.txt']&&!('notes.txt' in R().index)&&'notes.txt' in S.work},w:'Staging cho phép chọn chính xác những gì vào mỗi snapshot. <code>git add .</code> lấy tất cả, nên hãy đọc <code>git status</code> trước.'},
+ {t:'Hoàn tác trước khi commit',g:'Bạn làm hỏng <code>app.py</code> và lỡ stage <code>draft.txt</code>. Bỏ thay đổi ở app.py và đưa draft.txt ra khỏi staging (vẫn giữ file).',s:['git init',"echo \"print('ok')\" > app.py",'git add .','git commit -m "Add app"','echo "BROKEN" > app.py','echo "draft" > draft.txt','git add draft.txt'],h:['git status','git diff','git restore app.py','git restore --staged draft.txt','git status'],c:()=>{const p=R();return S.work['app.py']===tree(headId())['app.py']&&!('draft.txt' in p.index)&&'draft.txt' in S.work},w:'<code>git restore</code> xóa vĩnh viễn thay đổi chưa commit; <code>git restore --staged</code> chỉ đưa file ra khỏi staging. Khi không chắc, dùng <code>git stash</code>.'},
+ {t:'Giấu bí mật với .gitignore',g:'Commit <code>train.py</code> cùng một file <code>.gitignore</code> để <code>.env</code> và mọi file <code>*.log</code> không bao giờ bị theo dõi, kể cả khi chạy <code>git add .</code>.',s:['git init','echo "# App" > README.md','git add .','git commit -m "Initial commit"','echo "OPENAI_API_KEY=sk-test-123" > .env','echo "error at line 3" > debug.log','echo "print(1)" > train.py'],h:['git status','echo ".env" > .gitignore','echo "*.log" >> .gitignore','git status','git add .','git commit -m "Add training script and .gitignore"'],c:()=>{const t=tree(headId());return t['.gitignore']&&t['train.py']&&!t['.env']&&!t['debug.log']&&!('.env' in R().index)&&ign('.env')&&ign('debug.log')},w:'Viết .gitignore trước lần <code>git add .</code> đầu tiên. Ignore một file sau khi đã commit không xóa nó khỏi lịch sử.'},
+ {t:'Sửa message commit',g:'Commit cuối có message <code>updte</code>. Đổi thành message có ý nghĩa mà không tạo thêm commit mới.',s:['git init','echo "# App" > README.md','git add .','git commit -m "Initial commit"',"echo \"name = 'demo'\" > user.py",'git add .','git commit -m "updte"'],h:['git log --oneline','git commit --amend -m "Add user information"','git log --oneline'],c:()=>{const c=C(headId());return c.msg!=='updte'&&c.parents.length===1&&!C(c.parents[0]).parents.length&&c.tree['user.py']},w:'<code>--amend</code> thay thế commit cuối nên commit có mã hash mới. Chỉ amend những commit chưa push.'},
+ {t:'Nhánh tính năng',g:'Tạo nhánh <code>feature/login</code>, commit <code>login.py</code> trên đó, rồi merge lại vào main.',s:['git init','echo "# App" > README.md','git add .','git commit -m "Initial commit"'],h:['git checkout -b feature/login','echo "def login(): pass" > login.py','git add .','git commit -m "Add login"','git checkout main','ls','git merge feature/login','git branch -d feature/login'],c:()=>R().head==='main'&&tree(headId())['login.py']&&!dirty(),w:'Nhánh chỉ là con trỏ tới một commit. Lần merge này là fast-forward: main chỉ việc dịch lên commit của nhánh feature. Để ý login.py biến mất khỏi thư mục khi bạn đứng ở main.'},
+ {t:'Xung đột khi merge',g:'Cả hai nhánh cùng sửa một dòng trong <code>model.py</code>. Merge <code>feature-a</code> vào main và giữ <b>cả hai</b> mô hình.',s:['git init','echo "model = None" > model.py','git add .','git commit -m "Add model stub"','git checkout -b feature-a','echo "model = XGBoost()" > model.py','git commit -am "Use XGBoost"','git checkout main','echo "model = LinearRegression()" > model.py','git commit -am "Use LinearRegression"'],h:['git log --oneline --all','git merge feature-a','git status','cat model.py','# Bấm model.py trong Working directory, giữ cả hai dòng model, xóa 3 dòng dấu, rồi Lưu.','git add model.py','git commit -m "Merge feature-a: keep both models"'],c:()=>{const c=C(headId()),t=c.tree['model.py']||'';return R().head==='main'&&c.parents.length===2&&t.includes('LinearRegression')&&t.includes('XGBoost')&&!/<<<<<<<|=======|>>>>>>>/.test(t)},w:'Conflict chỉ có nghĩa là hai nhánh sửa cùng dòng. Chọn một bên hoặc cả hai, xóa các dấu, rồi add và commit.'},
+ {t:'Revert commit lỗi',g:'Commit <i>Add experimental feature</i> gây lỗi và cả team đã có nó. Hoàn tác bằng một commit mới, giữ nguyên lịch sử và <code>docs.md</code>.',s:['git init','echo "# App" > README.md','git add .','git commit -m "Initial commit"','echo "1/0" > bug.py','git add .','git commit -m "Add experimental feature"','echo "How to run" > docs.md','git add .','git commit -m "Add docs"'],h:['git log --oneline','git revert HEAD~1','git log --oneline','ls'],c:()=>{const t=tree(headId()),bad=Object.values(S.objs).find(c=>c.msg==='Add experimental feature');return R().head==='main'&&!t['bug.py']&&t['docs.md']&&bad&&isAnc(bad.id,headId())},w:'<code>git revert</code> thêm một commit đảo ngược nên không làm hỏng lịch sử của ai. <code>git reset --hard</code> xóa commit; chỉ dùng cho thử nghiệm local.'},
+ {t:'Push lên GitHub',g:'Một repo GitHub trống đang chờ. Kết nối nó với tên <code>origin</code> rồi push main, thiết lập upstream.',s:['git init','echo "# git-practice" > README.md','git add .','git commit -m "Initial commit"','echo "import pandas as pd" > read_data.py','git add .','git commit -m "Add data loader"',ghCreate],h:['git remote add origin '+U,'git remote -v','git push','git push -u origin main','git status'],c:()=>{const p=R();return p.remotes.origin&&S.gh.branches.main===p.branches.main&&p.track.main==='origin/main'},w:'<code>-u</code> liên kết main local với origin/main một lần; sau đó chỉ cần <code>git push</code> và <code>git pull</code>.'},
+ {t:'Clone dự án',g:'Đồng đội Lan đã có repo trên GitHub. Tải về kèm toàn bộ lịch sử.',s:[ghSeed],h:['git clone '+U,'ls','git log --oneline','git branch -a'],c:()=>R()&&R().remotes.origin&&headId()===S.gh.branches.main,w:'Mỗi dự án chỉ clone một lần. Từ đó trở đi dùng <code>git pull</code> để lấy code mới.'},
+ {t:'Pull code mới',g:'Lan vừa push lên main trên GitHub. Đưa commit đó về main local của bạn.',s:[ghSeed,'git clone '+U,teammate],h:['git status','git fetch','git status','git pull','git log --oneline'],c:()=>{const p=R();return p.branches.main===S.gh.branches.main&&p.rrefs['origin/main']===S.gh.branches.main},w:'<code>git status</code> chỉ biết những gì đã fetch lần cuối. <code>git fetch</code> cập nhật origin/main; <code>git pull</code> = fetch + merge vào nhánh của bạn.'},
+ {t:'Push bị từ chối',g:'Bạn đã commit <code>clean.py</code>, nhưng Lan push trước. Đưa commit của bạn lên GitHub mà không làm mất commit của Lan.',s:[ghSeed,'git clone '+U,teammate,'echo "def clean(df): return df.dropna()" > clean.py','git add .','git commit -m "Add cleaning step"'],h:['git push','git pull','git log --oneline --graph','git push'],c:()=>{const g=S.gh.branches.main,mine=Object.values(S.objs).find(c=>c.msg==='Add cleaning step'),lan=Object.values(S.objs).find(c=>c.author==='Lan'&&c.msg===MATES[0][0]);return mine&&lan&&isAnc(mine.id,g)&&isAnc(lan.id,g)&&R().branches.main===g},w:'Push bị từ chối là bình thường: pull, xử lý conflict nếu có, rồi push lại. Đừng bao giờ <code>--force</code> lên nhánh dùng chung; làm vậy sẽ xóa commit của Lan.'},
+ {t:'Quy trình Pull Request',g:'Vòng lặp hằng ngày của team: tạo nhánh <code>feature/chart</code>, commit <code>chart.py</code>, push lên, mở và merge pull request ở khung GitHub, rồi cập nhật main local và xóa nhánh.',s:[ghSeed,'git clone '+U],h:['git checkout -b feature/chart','echo "import matplotlib.pyplot as plt" > chart.py','git add .','git commit -m "Add sales chart"','git push -u origin feature/chart','# Trong khung GitHub: bấm Compare & pull request, rồi Merge pull request.','git checkout main','git pull','git branch -d feature/chart'],c:()=>{const p=R(),g=S.gh;return tree(g.branches.main)['chart.py']&&p.branches.main===g.branches.main&&!p.branches['feature/chart']&&p.head==='main'&&g.prs.some(x=>x.state==='merged')},w:'Tạo nhánh, push, mở pull request, review, merge trên GitHub, pull main, xóa nhánh: vòng này chiếm phần lớn một ngày làm việc với Git.'},
+ {t:'Stash rồi chuyển nhánh',g:'Đang làm dở tính năng thì cần sửa gấp trên main. Cất tạm phần sửa dở của <code>report.py</code>, commit <code>fix.txt</code> trên main, rồi quay lại và lấy lại phần việc.',s:['git init','echo "# App" > README.md','git add .','git commit -m "Initial commit"','git checkout -b feature/report','echo "def report():" > report.py','git add .','git commit -m "Start report"','echo "    half-done code" >> report.py'],h:['git checkout main','git stash','git checkout main','echo "fixed" > fix.txt','git add .','git commit -m "Hotfix"','git checkout feature/report','git stash pop'],c:()=>{const p=R();return tree(p.branches.main)['fix.txt']&&p.head==='feature/report'&&(S.work['report.py']||'').includes('half-done')&&!p.stash.length},w:'<code>git stash</code> cất việc chưa commit để bạn chuyển nhánh; <code>git stash pop</code> lấy lại. An toàn hơn <code>git restore</code>.'},
+ {t:'Gắn tag phát hành',g:'Đây là phiên bản bạn sẽ trình bày với khách hàng. Đánh dấu nó là <code>v1.0</code> bằng annotated tag và làm cho tag hiện trên GitHub.',s:[ghSeed,'git clone '+U],h:['git tag -a v1.0 -m "Version 1.0 for client demo"','git show v1.0','git push','git push origin v1.0'],c:()=>S.gh.tags['v1.0']&&S.gh.tags['v1.0'].ann,w:'<code>git push</code> không đẩy tag. Push tag theo tên, hoặc đẩy tất cả bằng <code>git push --tags</code>.'}
+];
+
+function graph(refs){const set=new Set();refs.forEach(r=>anc(r.id).forEach(x=>set.add(x)));const cs=[...set].map(C).sort((a,b)=>b.n-a.n);if(!cs.length)return '<p class="empty">Chưa có commit nào</p>';
+ const row={},lane={};cs.forEach((c,i)=>row[c.id]=i);let n=0;
+ const walk=id=>{let any=0;while(id&&lane[id]===undefined&&set.has(id)){lane[id]=n;any=1;id=C(id).parents[0]}if(any)n++};
+ refs.forEach(r=>walk(r.id));cs.forEach(c=>walk(c.id));
+ const X=l=>12+l*18,Y=i=>15+i*30,W=X(Math.max(n-1,0))+12,H=cs.length*30;let svg='';
+ cs.forEach(c=>c.parents.forEach(pid=>{if(row[pid]===undefined)return;const x1=X(lane[c.id]),y1=Y(row[c.id]),x2=X(lane[pid]),y2=Y(row[pid]);
+  const d=x1===x2?`M${x1} ${y1}V${y2}`:lane[pid]>lane[c.id]?`M${x1} ${y1}C${x1} ${y1+15} ${x2} ${y1+15} ${x2} ${y1+30}V${y2}`:`M${x1} ${y1}V${y2-30}C${x1} ${y2-15} ${x2} ${y2-15} ${x2} ${y2}`;
+  svg+=`<path d="${d}" stroke="var(--l${Math.max(lane[c.id],lane[pid])%5})"/>`}));
+ cs.forEach(c=>{svg+=`<circle cx="${X(lane[c.id])}" cy="${Y(row[c.id])}" r="5" fill="var(--l${lane[c.id]%5})"/>`});
+ const lab=id=>refs.filter(r=>r.id===id).map(r=>`<i class="${r.k}">${esc(r.n)}</i>`).join('');
+ return `<div class="gr" style="--gw:${W}px"><svg width="${W}" height="${H}" aria-hidden="true">${svg}</svg>${cs.map(c=>`<div class="cr"><code>${short(c.id)}</code>${lab(c.id)}<span title="${esc(c.msg)}">${esc(c.msg)}</span><small>${esc(c.author)}</small></div>`).join('')}</div>`}
+function renderMission(){const m=M[cur];
+ $('#chips').innerHTML=M.map((x,i)=>`<button class="chip${done.has(i)?' ok':''}" role="tab" aria-current="${i===cur}" data-m="${i}">${i?i+'. ':''}${esc(x.t)}</button>`).join('');
+ $('#mis').innerHTML=`<h2>${cur?'Nhiệm vụ '+cur+': ':''}${esc(m.t)}</h2><p class="goal">${m.g}</p>
+  <details${cur===1?' open':''}><summary>Xem gợi ý lệnh</summary><div class="hints">${m.h.map(h=>h[0]==='#'?`<p class="hnote">${esc(h.slice(2))}</p>`:`<button class="hint" type="button">${esc(h)}</button>`).join('')}</div><p class="hnote">Bấm vào một lệnh để đưa nó vào terminal, rồi nhấn Enter. Có vài bước cố tình báo lỗi để bạn thấy lỗi thật trông thế nào.</p></details>
+  <div class="bar"><button class="btn2" type="button" data-act="reset">Làm lại nhiệm vụ</button>${done.size?`<button class="btn2" type="button" data-act="wipe">Xóa toàn bộ tiến độ (${done.size}/${M.length-1})</button>`:''}${m.c?(done.has(cur)?'<span class="hnote" style="width:auto">Đã hoàn thành trước đó</span>':''):''}</div>
+  ${S.won?`<div class="won"><b>Hoàn thành nhiệm vụ.</b> ${m.w}<div class="bar">${cur<M.length-1?'<button class="btn" type="button" data-act="next">Nhiệm vụ tiếp theo</button>':'<span>Đây là nhiệm vụ cuối: bạn đã đi hết phần 80/20.</span>'}</div></div>`:''}`}
+function renderZones(){const p=R(),s=p?st():null;
+ const fs=keys(S.work,p?p.index:{});
+ $('#wd').innerHTML=fs.map(f=>{let b='';if(p){if(p.cf.includes(f))b='<b class="bd x">conflict</b>';else if(!(f in S.work))b='<b class="bd x">deleted</b>';else if(!(f in p.index))b=ign(f)?'<b class="bd i">ignored</b>':'<b class="bd x">untracked</b>';else if(S.work[f]!==p.index[f])b='<b class="bd x">modified</b>'}
+  return `<button class="file" type="button" data-f="${esc(f)}"${f in S.work?'':' disabled'}><span>${esc(f)}</span>${b}</button>`}).join('')+'<button class="file add" type="button" data-new="1">+ File mới</button>';
+ $('#sg').innerHTML=!p?'<p class="empty">Chưa có repository. Chạy git init hoặc git clone.</p>':(s.a.length?s.a.map(([f,k])=>`<div class="file"><span>${esc(f)}</span><b class="bd s">${k==='new file'?'new':k}</b></div>`).join(''):'<p class="empty">Chưa stage gì.</p>')+(p.cf.length?'<p class="warn">Chưa xử lý conflict: '+esc(p.cf.join(', '))+'</p>':'');
+ if(!p)$('#lr').innerHTML='<p class="empty">Chưa có thư mục .git.</p>';
+ else{const refs=[];Object.entries(p.branches).forEach(([b,id])=>refs.push({n:b===p.head?'HEAD → '+b:b,id,k:b===p.head?'h':'b'}));Object.entries(p.rrefs).forEach(([b,id])=>refs.push({n:b,id,k:'o'}));Object.entries(p.tags).forEach(([t,x])=>refs.push({n:t,id:x.id,k:'t'}));refs.sort((a,b)=>(b.k==='h')-(a.k==='h'));
+  $('#lr').innerHTML=(p.merging?'<p class="warn">Đang merge: sửa file, git add, git commit (hoặc git merge --abort).</p>':'')+(headId()?'':`<p class="empty">Đang ở nhánh ${esc(p.head)}, chưa có commit.</p>`)+(refs.length?`<div class="gwrap">${graph(refs)}</div>`:'')+(p.stash.length?`<p class="meta">Stash: ${p.stash.length} mục</p>`:'')}
+ const g=S.gh,el=$('#gh');
+ if(!g.exists){el.innerHTML='<p class="empty">Chưa có repository trên GitHub.</p><div class="ghbtns"><button class="btn" type="button" data-gh="create">Tạo repository</button></div>';return}
+ const m=g.branches.main;
+ if(!m){el.innerHTML=`<p class="meta">Repository trống. Thiết lập nhanh:</p><div class="code" style="font-size:13px">git remote add origin ${esc(URL0)}<br>git branch -M main<br>git push -u origin main</div>`;return}
+ const refs=[...Object.entries(g.branches).map(([b,id])=>({n:b,id,k:'b'})),...Object.entries(g.tags).map(([t,x])=>({n:t,id:x.id,k:'t'}))];
+ const cand=Object.keys(g.branches).filter(b=>b!=='main'&&!g.prs.some(x=>x.b===b&&x.state==='open')&&!isAnc(g.branches[b],m));
+ const prs=g.prs.map(pr=>{const t=g.branches[pr.b];let body;
+  if(pr.state==='merged')body='<span class="ok">Đã merge</span>'+(t&&!pr.del?`<button class="btn2" type="button" data-del="${pr.n}">Xóa nhánh</button>`:'');
+  else if(!t)body='<span class="x">Nhánh đã bị xóa</span>';
+  else if(isAnc(t,m))body='<span class="ok">Đã có trong main</span>';
+  else{const cf=merge3(tree(base(m,t)),tree(m),tree(t),pr.b).cf;body=cf.length?`<span class="x">Conflict ở ${esc(cf.join(', '))}: merge main vào nhánh ở local rồi push lại</span>`:`<span class="ok">Không conflict với main</span><button class="btn" type="button" data-merge="${pr.n}">Merge pull request</button>`}
+  return `<div class="pr"><b>#${pr.n} ${esc(pr.b)} → main</b>${body}</div>`}).join('');
+ el.innerHTML=`<div class="gwrap">${graph(refs)}</div><p class="meta">File trên main: ${Object.keys(tree(m)).sort().map(esc).join(', ')}</p>${prs}<div class="ghbtns">${cand.map(b=>`<button class="btn" type="button" data-pr="${esc(b)}">Compare &amp; pull request: ${esc(b)}</button>`).join('')}<button class="btn2" type="button" data-gh="mate">Giả lập: Lan push lên main</button></div>`}
+function render(){renderMission();renderZones();const p=R();$('#prompt').textContent='~/git-practice'+(p?` (${p.head}${p.merging?'|MERGING':''})`:'')+' $';term.scrollTop=term.scrollHeight}
+function save(){try{localStorage.setItem('git8020',JSON.stringify({d:[...done],c:cur}))}catch(e){}}
+function check(){const m=M[cur];if(!m.c||S.won)return;let ok=false;try{ok=!!m.c()}catch(e){}if(ok){S.won=true;done.add(cur);save();out('✓ Hoàn thành nhiệm vụ','g')}}
+function after(){check();render()}
+function run(line){out('$ '+line,'c');for(const part of line.split('&&'))if(exec(part.trim())===false)break;after()}
+function load(i){cur=i;S=fresh();silent=true;for(const s of M[i].s)typeof s==='function'?s():exec(s);silent=false;term.textContent='';out(cur?`Nhiệm vụ ${cur}: ${M[cur].t}`:'Tự do khám phá','b');out('Gõ help để xem lệnh, hoặc mở "Xem gợi ý lệnh". Bắt đầu bằng git status.','d');save();render()}
+function openEd(f){const d=$('#ed');$('#edh').textContent=f?'Sửa '+f:'File mới';$('#edn').value=f;$('#edn').readOnly=!!f;$('#edt').value=(S.work[f]||'').replace(/\n$/,'');d.showModal();(f?$('#edt'):$('#edn')).focus()}
+$('#ed').addEventListener('close',()=>{if($('#ed').returnValue!=='save')return;const f=$('#edn').value.trim();if(!f)return;const v=$('#edt').value;S.work[f]=v?v.replace(/\n?$/,'\n'):'';out(`(đã lưu ${f} trong trình sửa file)`,'d');after()});
+const hist=[];let hi=0;
+$('#cmdf').addEventListener('submit',e=>{e.preventDefault();const v=$('#cmd').value.trim();$('#cmd').value='';if(!v)return;hist.push(v);hi=hist.length;run(v)});
+$('#cmd').addEventListener('keydown',e=>{if(e.key==='ArrowUp'&&hi>0){$('#cmd').value=hist[--hi];e.preventDefault()}else if(e.key==='ArrowDown'){hi=Math.min(hist.length,hi+1);$('#cmd').value=hist[hi]||''}});
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b)load(+b.dataset.m)});
+$('#mis').addEventListener('click',e=>{const h=e.target.closest('.hint');if(h){$('#cmd').value=h.textContent;$('#cmd').focus();return}const a=e.target.closest('[data-act]');if(!a)return;if(a.dataset.act==='wipe'){if(!a.dataset.sure){a.dataset.sure=1;a.textContent='Bấm lần nữa để xóa hết tiến độ';a.style.borderColor='var(--red)';a.style.color='var(--red)';return}done.clear();save();load(1);out('Đã xóa toàn bộ tiến độ. Bắt đầu lại từ nhiệm vụ 1.','d');return}if(a.dataset.act==='reset')load(cur);else{load(cur+1);$('#sandbox').scrollIntoView({block:'start'})}});
+$('#wd').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;openEd(b.dataset.new?'':b.dataset.f)});
+$('#gh').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const g=S.gh,d=b.dataset;
+ if(d.gh==='create'){ghCreate();out('(GitHub) Đã tạo repository trống you/git-practice','d')}
+ else if(d.gh==='mate'){teammate();out(`(GitHub) Lan đã push "${C(g.branches.main).msg}" lên main`,'d')}
+ else if(d.pr){g.prs.push({n:g.prs.length+1,b:d.pr,state:'open'});out(`(GitHub) Đã mở pull request #${g.prs.length}: ${d.pr} → main`,'d')}
+ else if(d.merge){const pr=g.prs.find(x=>x.n===+d.merge),m=g.branches.main,t=g.branches[pr.b],r=merge3(tree(base(m,t)),tree(m),tree(t),pr.b);if(r.cf.length)return;g.branches.main=mk(`Merge pull request #${pr.n} from you/${pr.b}`,[m,t],r.tree);pr.state='merged';out(`(GitHub) Đã merge pull request #${pr.n} vào main. Main local chưa biết điều này: hãy git pull`,'d')}
+ else if(d.del){const pr=g.prs.find(x=>x.n===+d.del);delete g.branches[pr.b];pr.del=1;out(`(GitHub) Đã xóa nhánh remote ${pr.b}`,'d')}
+ after()});
+$('#copy').addEventListener('click',async e=>{try{await navigator.clipboard.writeText($('#day').textContent);e.target.textContent='Đã chép'}catch(x){e.target.textContent='Hãy bôi đen để chép'}});
+try{const s=JSON.parse(localStorage.getItem('git8020')||'{}');(s.d||[]).forEach(i=>done.add(i));if(s.c>=0&&s.c<M.length)cur=s.c}catch(e){}
+window.gitLab={M,load,run,openEd,state:()=>S};
+load(cur);
+}
+</script>
+</body>
+</html>
